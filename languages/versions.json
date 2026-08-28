@@ -1,3 +1,17 @@
 {
-  "javascript": 3
+  "javascript": 4,
+  "bash": 1,
+  "csharp": 1,
+  "css": 1,
+  "dart": 1,
+  "go": 1,
+  "html": 1,
+  "java": 1,
+  "kotlin": 1,
+  "python": 1,
+  "sql": 1,
+  "swift": 1,
+  "typescript": 1,
+  "_tagNumber": 1,
+  "_tag": "v1"
 }
