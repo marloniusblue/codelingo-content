@@ -138,7 +138,7 @@
               "console.log(\"Start\");",
               "console.log(\"Ende\");"
             ],
-            "explanationShort": "JavaScript wird von oben nach unten ausgeführt.",
+            "explanationShort": "JavaScrip wird von oben nach unten ausgeführt.",
             "explanationLong": "JavaScript-Code läuft der Reihe nach von oben nach unten. Das erste console.log() wird zuerst ausgeführt, das zweite danach. log.console() ist keine gültige Schreibweise — es muss console.log() heißen."
           },
           {

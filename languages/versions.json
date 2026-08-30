@@ -1,5 +1,5 @@
 {
-  "javascript": 8,
+  "javascript": 9,
   "bash": 2,
   "csharp": 2,
   "css": 2,
@@ -12,6 +12,6 @@
   "sql": 2,
   "swift": 2,
   "typescript": 2,
-  "_tagNumber": 5,
-  "_tag": "v5"
+  "_tagNumber": 6,
+  "_tag": "v6"
 }
