@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Spielwiese</title>
+<style>
+  :root {
+    --primary: #58cc02;
+    --primary-dark: #4caf00;
+    --bg: #ffffff;
+    --surface: #f7f7f7;
+    --border: #e5e5e5;
+    --text: #3c3c3c;
+    --text-secondary: #777777;
+    --red: #ff4b4b;
+    --orange: #ff9600;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, Roboto, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  body { display: flex; flex-direction: column; }
+  .tabs {
+    display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto; padding: 10px 16px; border-radius: 16px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-weight: 600; font-size: 14px;
+    white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .remote-hint {
+    display: none; align-items: center; gap: 6px; padding: 0 16px 8px;
+    font-size: 12px; color: var(--text-secondary);
+  }
+  .remote-hint.show { display: flex; }
+  .main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 0 16px 16px; gap: 10px; }
+  .editor-box {
+    flex: 5; min-height: 0; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px; display: flex;
+  }
+  textarea {
+    flex: 1; border: none; background: transparent; resize: none; outline: none;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 14px; color: var(--text);
+  }
+  .run-btn {
+    flex: 0 0 auto; padding: 14px; border: none; border-radius: 14px;
+    background: var(--primary); color: #fff; font-weight: 700; font-size: 16px;
+    cursor: pointer;
+  }
+  .run-btn:disabled { opacity: 0.6; }
+  .output-box {
+    flex: 4; min-height: 0; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: auto; position: relative;
+  }
+  .output-inner { padding: 12px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+  .output-empty { display:flex; align-items:center; justify-content:center; height:100%; color: var(--text-secondary); text-align:center; padding: 16px; font-size: 14px; }
+  .output-error { color: var(--red); }
+  .console-line { margin-bottom: 4px; }
+  .console-warn { color: var(--orange); }
+  .console-error { color: var(--red); }
+  .status-box { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap: 12px; color: var(--text-secondary); font-size: 13px; text-align: center; padding: 16px; }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--primary);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  iframe.preview { width: 100%; height: 100%; border: none; background: #fff; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  th { background: var(--surface); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="tabs" id="tabs"></div>
+<div class="remote-hint" id="remoteHint">☁️ Läuft über einen externen Dienst (Internetverbindung nötig)</div>
+
+<div class="main">
+  <div class="editor-box"><textarea id="editor" spellcheck="false"></textarea></div>
+  <button class="run-btn" id="runBtn">Ausführen</button>
+  <div class="output-box" id="outputBox"><div class="output-empty">Noch keine Ausgabe — auf "Ausführen" tippen.</div></div>
+</div>
+
+<iframe id="jsRunner" style="display:none" sandbox="allow-scripts"></iframe>
+
+<script>
+// ── Sprachen ────────────────────────────────────────────────────────────
+const LANGS = [
+  { id: 'javascript', label: 'JavaScript', mode: 'js',
+    starter: "console.log('Hallo Welt!');" },
+  { id: 'html', label: 'HTML', mode: 'html',
+    starter: '<h1>Hallo Welt!</h1>\n<p>Schreib hier dein HTML.</p>' },
+  { id: 'css', label: 'CSS', mode: 'css',
+    starter: '.box {\n  background: #58cc02;\n  color: white;\n  padding: 16px;\n  border-radius: 8px;\n  text-align: center;\n}' },
+  { id: 'sql', label: 'SQL', mode: 'sql',
+    starter: 'SELECT * FROM produkte;' },
+  { id: 'python', label: 'Python', mode: 'remote', piston: 'python',
+    starter: 'print("Hallo Welt!")' },
+  { id: 'java', label: 'Java', mode: 'remote', piston: 'java',
+    starter: 'public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hallo Welt!");\n  }\n}' },
+  { id: 'kotlin', label: 'Kotlin', mode: 'remote', piston: 'kotlin',
+    starter: 'fun main() {\n  println("Hallo Welt!")\n}' },
+  { id: 'csharp', label: 'C#', mode: 'remote', piston: 'csharp',
+    starter: 'using System;\n\nclass Program {\n  static void Main() {\n    Console.WriteLine("Hallo Welt!");\n  }\n}' },
+  { id: 'go', label: 'Go', mode: 'remote', piston: 'go',
+    starter: 'package main\n\nimport "fmt"\n\nfunc main() {\n  fmt.Println("Hallo Welt!")\n}' },
+  { id: 'swift', label: 'Swift', mode: 'remote', piston: 'swift',
+    starter: 'print("Hallo Welt!")' },
+  { id: 'dart', label: 'Dart', mode: 'remote', piston: 'dart',
+    starter: 'void main() {\n  print("Hallo Welt!");\n}' },
+  { id: 'typescript', label: 'TypeScript', mode: 'remote', piston: 'typescript',
+    starter: 'const gruss: string = "Hallo Welt!";\nconsole.log(gruss);' },
+  { id: 'bash', label: 'Bash', mode: 'remote', piston: 'bash',
+    starter: 'echo "Hallo Welt!"' },
+];
+
+const codeByLang = {};
+LANGS.forEach(l => codeByLang[l.id] = l.starter);
+let currentLang = LANGS[0];
+let running = false;
+
+const tabsEl = document.getElementById('tabs');
+const editorEl = document.getElementById('editor');
+const runBtn = document.getElementById('runBtn');
+const outputBox = document.getElementById('outputBox');
+const remoteHint = document.getElementById('remoteHint');
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  LANGS.forEach(l => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (l.id === currentLang.id ? ' active' : '');
+    el.textContent = l.label;
+    el.onclick = () => selectLang(l.id);
+    tabsEl.appendChild(el);
+  });
+}
+
+function selectLang(id) {
+  codeByLang[currentLang.id] = editorEl.value;
+  currentLang = LANGS.find(l => l.id === id);
+  editorEl.value = codeByLang[currentLang.id];
+  remoteHint.classList.toggle('show', currentLang.mode === 'remote');
+  renderTabs();
+  showEmptyOutput();
+}
+
+function showEmptyOutput() {
+  outputBox.innerHTML = '<div class="output-empty">Noch keine Ausgabe — auf "Ausführen" tippen.</div>';
+}
+
+function showTextOutput(text, isError) {
+  const div = document.createElement('div');
+  div.className = 'output-inner' + (isError ? ' output-error' : '');
+  div.textContent = text || '(keine Ausgabe)';
+  outputBox.innerHTML = '';
+  outputBox.appendChild(div);
+}
+
+function showStatus(text) {
+  outputBox.innerHTML = '<div class="status-box"><div class="spinner"></div><div>' +
+    escapeHtml(text) + '</div></div>';
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function setRunning(state) {
+  running = state;
+  runBtn.disabled = state;
+  runBtn.textContent = state ? '…' : 'Ausführen';
+}
+
+// ── Lokale Sprachen: JavaScript ──────────────────────────────────────────
+// Läuft in einem sandboxed <iframe> (nicht in der Hauptseite selbst), damit
+// vom Nutzer eingegebener Code nichts an der Spielwiese-Seite selbst kaputt
+// machen kann (z.B. fetch/console überschreiben).
+const jsRunnerFrame = document.getElementById('jsRunner');
+let consoleLines = [];
+
+window.addEventListener('message', (e) => {
+  if (!e.data || !e.data.__jsRunner) return;
+  consoleLines.push({ type: e.data.type, text: e.data.text });
+  renderConsole();
+});
+
+function renderConsole() {
+  if (consoleLines.length === 0) { showEmptyOutput(); return; }
+  const wrap = document.createElement('div');
+  wrap.className = 'output-inner';
+  consoleLines.forEach(l => {
+    const line = document.createElement('div');
+    line.className = 'console-line' + (l.type === 'error' ? ' console-error' : l.type === 'warn' ? ' console-warn' : '');
+    line.textContent = l.text;
+    wrap.appendChild(line);
+  });
+  outputBox.innerHTML = '';
+  outputBox.appendChild(wrap);
+}
+
+function runJavaScript(code) {
+  consoleLines = [];
+  showEmptyOutput();
+  const escaped = code.replace(/<\/script>/gi, '<\\/script>');
+  const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><script>' +
+    'function post(type, args){ try{ parent.postMessage({__jsRunner:true, type:type, ' +
+    'text: args.map(function(a){ if (typeof a===\'string\') return a; ' +
+    'try{ return JSON.stringify(a);}catch(_){ return String(a);} }).join(\' \')}, \'*\'); }catch(_){} }' +
+    'console.log=function(){post(\'log\',Array.prototype.slice.call(arguments));};' +
+    'console.info=function(){post(\'log\',Array.prototype.slice.call(arguments));};' +
+    'console.warn=function(){post(\'warn\',Array.prototype.slice.call(arguments));};' +
+    'console.error=function(){post(\'error\',Array.prototype.slice.call(arguments));};' +
+    'window.onerror=function(m,s,l){ post(\'error\',[m+\' (Zeile \'+l+\')\']); return true; };' +
+    'try {\n' + escaped + '\n} catch(e){ post(\'error\',[e && e.message ? e.message : String(e)]); }' +
+    '<' + '/script></body></html>';
+  jsRunnerFrame.srcdoc = doc;
+}
+
+// ── Lokale Sprachen: HTML / CSS (Live-Vorschau) ──────────────────────────
+function runHtmlPreview(code) {
+  const iframe = document.createElement('iframe');
+  iframe.className = 'preview';
+  iframe.sandbox = 'allow-scripts';
+  iframe.srcdoc = code;
+  outputBox.innerHTML = '';
+  outputBox.appendChild(iframe);
+}
+
+function runCssPreview(css) {
+  const doc = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<style>' + css + '</style></head><body>' +
+    '<div class="playground"><h1>Überschrift</h1><p>Ein Absatz Text zum Stylen.</p>' +
+    '<button class="btn">Button</button><div class="box">Box</div>' +
+    '<ul><li>Erstes Element</li><li>Zweites Element</li></ul></div></body></html>';
+  runHtmlPreview(doc);
+}
+
+// ── Lokale Sprache: SQL (sql.js — SQLite als WASM im Browser) ───────────
+let sqlPromise = null;
+let sqlDb = null;
+const SEED_SQL = `
+  CREATE TABLE produkte (
+    id INTEGER PRIMARY KEY, name TEXT NOT NULL, preis REAL NOT NULL, lagerbestand INTEGER NOT NULL
+  );
+  INSERT INTO produkte (id, name, preis, lagerbestand) VALUES
+    (1, 'Tastatur', 29.99, 42), (2, 'Monitor', 189.00, 7),
+    (3, 'Maus', 14.50, 120), (4, 'USB-Kabel', 4.99, 300);
+  CREATE TABLE bestellungen (
+    id INTEGER PRIMARY KEY, produkt_id INTEGER NOT NULL REFERENCES produkte(id), menge INTEGER NOT NULL
+  );
+  INSERT INTO bestellungen (id, produkt_id, menge) VALUES (1, 1, 2), (2, 3, 5), (3, 2, 1);
+`;
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureSqlDb() {
+  if (sqlDb) return sqlDb;
+  if (!sqlPromise) {
+    sqlPromise = loadScript('https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/sql-wasm.js')
+      .then(() => initSqlJs({ locateFile: f => 'https://cdn.jsdelivr.net/npm/sql.js@1.10.2/dist/' + f }));
+  }
+  const SQL = await sqlPromise;
+  sqlDb = new SQL.Database();
+  sqlDb.run(SEED_SQL);
+  return sqlDb;
+}
+
+async function runSql(code) {
+  showStatus('Lade SQL-Modul …');
+  try {
+    const db = await ensureSqlDb();
+    const res = db.exec(code);
+    if (res.length === 0) {
+      showTextOutput('Abfrage erfolgreich, keine Zeilen zurückgegeben (oder kein SELECT).', false);
+      return;
+    }
+    const { columns, values } = res[0];
+    const table = document.createElement('table');
+    const thead = document.createElement('tr');
+    columns.forEach(c => { const th = document.createElement('th'); th.textContent = c; thead.appendChild(th); });
+    table.appendChild(thead);
+    values.forEach(row => {
+      const tr = document.createElement('tr');
+      row.forEach(v => { const td = document.createElement('td'); td.textContent = v === null ? 'NULL' : String(v); tr.appendChild(td); });
+      table.appendChild(tr);
+    });
+    outputBox.innerHTML = '';
+    outputBox.appendChild(table);
+  } catch (e) {
+    showTextOutput(e && e.message ? e.message : String(e), true);
+  }
+}
+
+// ── Server-Sprachen: Brücke zur App (siehe playground_screen.dart) ──────
+// Piston sendet standardmäßig kein CORS (bestätigt in dessen eigenem
+// GitHub-Issue #658), ein direkter fetch() von hier aus würde vom Browser
+// blockiert. Deshalb übernimmt die native App-Seite die eigentliche
+// Netzwerk-Anfrage (inkl. Wake-on-LAN-Weckversuch) — diese Seite schickt
+// nur eine Anfrage und wartet auf die Antwort.
+let pendingRequestId = null;
+
+window.__pistonStatus = function (requestId, status) {
+  if (requestId !== pendingRequestId) return;
+  showStatus(status);
+};
+
+window.__pistonCallback = function (result) {
+  if (result.requestId !== pendingRequestId) return;
+  pendingRequestId = null;
+  setRunning(false);
+  if (result.error) {
+    showTextOutput(result.error, true);
+  } else {
+    showTextOutput(result.output, !result.success);
+  }
+};
+
+function runRemote(pistonLang, code) {
+  const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  pendingRequestId = requestId;
+  showStatus('Sende Anfrage …');
+  if (window.PistonBridge && window.PistonBridge.postMessage) {
+    window.PistonBridge.postMessage(JSON.stringify({ requestId, pistonLanguage: pistonLang, code }));
+  } else {
+    setRunning(false);
+    showTextOutput('Verbindung zur App nicht verfügbar.', true);
+  }
+}
+
+// ── Ausführen-Knopf ───────────────────────────────────────────────────
+runBtn.addEventListener('click', () => {
+  if (running) return;
+  const code = editorEl.value;
+  codeByLang[currentLang.id] = code;
+  setRunning(true);
+  switch (currentLang.mode) {
+    case 'js':
+      runJavaScript(code);
+      setRunning(false);
+      break;
+    case 'html':
+      runHtmlPreview(code);
+      setRunning(false);
+      break;
+    case 'css':
+      runCssPreview(code);
+      setRunning(false);
+      break;
+    case 'sql':
+      runSql(code).finally(() => setRunning(false));
+      break;
+    case 'remote':
+      runRemote(currentLang.piston, code);
+      break;
+  }
+});
+
+// ── Start ─────────────────────────────────────────────────────────────
+editorEl.value = currentLang.starter;
+renderTabs();
+</script>
+</body>
+</html>
