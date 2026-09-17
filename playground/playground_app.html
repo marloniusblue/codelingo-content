@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CodeLingo – Spielwiese</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/go/go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+
+<style>
+  :root {
+    --bg: #14151d;
+    --surface: #1e1e2e;
+    --surface-2: #2a2a3e;
+    --surface-3: #34344a;
+    --border: #34344a;
+    --text: #cdd6f4;
+    --text-dim: #a2a7bd;
+    --text-faint: #6b7280;
+    --green: #58cc02;
+    --green-dark: #3f9401;
+    --green-glow: rgba(88, 204, 2, .28);
+    --blue: #1cb0f6;
+    --blue-dark: #0e8fd0;
+    --orange: #ff9600;
+    --red: #ff4b4b;
+    --font-ui: 'Nunito', -apple-system, Roboto, sans-serif;
+    --font-code: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-ui);
+    touch-action: manipulation; overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { display: flex; flex-direction: column; height: 100%; }
+
+  /* ── Kopfzeile ─────────────────────────────────────────────────── */
+  #header {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px 10px; background: linear-gradient(180deg, #191b24, var(--bg));
+  }
+  #header .logo { font-size: 20px; line-height: 1; filter: drop-shadow(0 0 6px var(--green-glow)); }
+  #header h1 {
+    margin: 0; font-family: var(--font-ui); font-weight: 800; font-size: 17px;
+    color: var(--text); letter-spacing: .2px;
+  }
+  #header .dot {
+    margin-left: auto; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green-glow);
+  }
+
+  /* ── Sprachauswahl ─────────────────────────────────────────────── */
+  #lang-row {
+    display: flex; gap: 8px; padding: 2px 16px 12px;
+    overflow-x: auto; overflow-y: hidden; flex: 0 0 auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #lang-row::-webkit-scrollbar { display: none; }
+  .lang-chip {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--surface-2); color: var(--text-dim);
+    font-family: var(--font-ui); font-size: 13px; font-weight: 700;
+    border: 2px solid var(--surface-2);
+    cursor: pointer; user-select: none; white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+  }
+  .lang-chip:active { transform: scale(.95); }
+  .lang-chip .icon { font-size: 14px; line-height: 1; }
+  .lang-chip.active {
+    background: var(--green-glow); color: var(--green);
+    border-color: var(--green);
+  }
+  .lang-chip .tag {
+    font-size: 9px; font-weight: 700; opacity: .8; margin-left: 2px;
+    background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 999px;
+  }
+
+  /* ── Editor-Fensterrahmen ──────────────────────────────────────── */
+  #editor-card {
+    flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+    margin: 0 12px 10px; border-radius: 16px; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  }
+  #editor-titlebar, #output-titlebar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: var(--surface-2);
+  }
+  #editor-titlebar .term-icon, #output-titlebar .term-icon {
+    color: var(--text-faint); font-size: 14px; font-family: var(--font-code); font-weight: 700;
+  }
+  #editor-titlebar .label, #output-titlebar .label {
+    color: var(--text-faint); font-size: 12px; font-family: var(--font-code); font-weight: 600;
+  }
+  #editor-filename {
+    font-family: var(--font-code); font-size: 12px; color: var(--text-faint);
+    margin-left: auto;
+  }
+  #editor-wrap { flex: 1 1 auto; min-height: 0; position: relative; }
+  .CodeMirror { height: 100%; font-family: var(--font-code); font-size: 14px; background: var(--surface); color: var(--text); padding: 4px 0; }
+  .CodeMirror-gutters { background: var(--surface); border-right: 1px solid var(--border); }
+  .CodeMirror-linenumber { color: #454858; }
+  .CodeMirror-cursor { border-left: 2px solid var(--green); }
+  .CodeMirror-selected { background: rgba(28,176,246,.18) !important; }
+  .cm-s-default .cm-keyword { color: #ff79c6; }
+  .cm-s-default .cm-string { color: #f1fa8c; }
+  .cm-s-default .cm-comment { color: #6a6f85; font-style: italic; }
+  .cm-s-default .cm-number { color: #bd93f9; }
+  .cm-s-default .cm-atom { color: #bd93f9; }
+  .cm-s-default .cm-def { color: var(--blue); }
+  .cm-s-default .cm-variable { color: var(--text); }
+  .cm-s-default .cm-tag { color: #ff79c6; }
+  .cm-s-default .cm-attribute { color: var(--blue); }
+
+  /* ── Aktionsleiste ─────────────────────────────────────────────── */
+  #action-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 2px 16px 12px; flex: 0 0 auto;
+  }
+  button { font-family: var(--font-ui); border: none; cursor: pointer; }
+
+  #run-btn {
+    flex: 1 1 auto; position: relative; display: flex; align-items: center; justify-content: center;
+    gap: 8px; height: 48px; border-radius: 14px; font-weight: 800; font-size: 15px;
+    color: #fff; background: var(--green); border-bottom: 4px solid var(--green-dark);
+    transition: transform .08s ease, border-bottom-width .08s ease, background .15s ease;
+  }
+  #run-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  #run-btn:disabled {
+    background: var(--surface-3); border-bottom-color: #1c1e28; color: var(--text-faint);
+  }
+  #run-btn .run-icon { font-size: 13px; }
+
+  .icon-btn {
+    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px;
+    background: var(--surface-2); color: var(--text-dim); font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    border-bottom: 3px solid var(--surface-3);
+    transition: transform .08s ease, border-bottom-width .08s ease;
+  }
+  .icon-btn:active { transform: translateY(1px); border-bottom-width: 1px; }
+
+  #status-text {
+    font-size: 11px; font-weight: 600; color: var(--text-dim);
+    flex: 0 0 auto; max-width: 34%; text-align: right; line-height: 1.3;
+  }
+
+  /* ── Ausgabe ───────────────────────────────────────────────────── */
+  #output-card {
+    flex: 0 0 38%; min-height: 100px; margin: 0 12px 12px;
+    border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  }
+
+  #console {
+    flex: 1 1 auto; overflow-y: auto; padding: 12px 14px;
+    font-family: var(--font-code); font-size: 13px;
+    line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+  }
+  #console .line { margin-bottom: 5px; animation: line-in .18s ease; }
+  @keyframes line-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+  #console .line.error { color: var(--red); }
+  #console .line.warn { color: var(--orange); }
+  #console .line.info { color: var(--blue); }
+  #console .placeholder { color: var(--text-faint); font-style: italic; }
+  #preview-frame { flex: 1 1 auto; border: none; background: #fff; }
+
+  table.sql-result { border-collapse: collapse; width: 100%; margin: 4px 0 16px; font-size: 12px; border-radius: 8px; overflow: hidden; }
+  table.sql-result th, table.sql-result td {
+    border: 1px solid var(--border); padding: 6px 10px; text-align: left;
+  }
+  table.sql-result th { background: var(--surface-3); color: var(--blue); font-weight: 700; }
+  table.sql-result tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+
+  #bridge-banner {
+    display: none; margin: 0 12px 10px; padding: 8px 12px; border-radius: 10px;
+    align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; line-height: 1.35;
+    background: rgba(255, 150, 0, .1); color: var(--orange); border: 1px solid rgba(255,150,0,.2);
+  }
+  #bridge-banner .emoji { font-size: 14px; flex: 0 0 auto; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <span class="logo">🦜</span>
+    <h1>Spielwiese</h1>
+    <span class="dot"></span>
+  </div>
+
+  <div id="bridge-banner">
+    <span class="emoji">⚠️</span><span>Einige Sprachen laufen nur innerhalb der App (siehe Markierung).</span>
+  </div>
+
+
+  <div id="lang-row"></div>
+
+  <div id="editor-card">
+    <div id="editor-titlebar">
+      <span class="term-icon">&gt;_</span><span class="label">Code</span>
+      <span id="editor-filename"></span>
+    </div>
+    <div id="editor-wrap"><textarea id="editor-textarea"></textarea></div>
+  </div>
+
+  <div id="action-row">
+    <button class="icon-btn" id="reset-btn" title="Auf Beispielcode zurücksetzen">↺</button>
+    <button class="icon-btn" id="db-reset-btn" title="Datenbank zurücksetzen" style="display:none;">🗑️</button>
+    <button id="run-btn"><span class="run-icon">▶</span><span id="run-label">Ausführen</span></button>
+    <div id="status-text"></div>
+  </div>
+
+  <div id="output-card">
+    <div id="output-titlebar"><span class="term-icon">&gt;_</span><span class="label">Ausgabe</span></div>
+    <div id="console"><div class="line placeholder">Noch nichts ausgeführt.</div></div>
+    <iframe id="preview-frame" style="display:none;" sandbox="allow-scripts"></iframe>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Sprachdefinitionen ───────────────────────────────────────────
+  // kind: 'js' | 'html' | 'css' | 'sql' | 'piston'
+  // pistonLanguage: nur bei kind === 'piston' relevant, siehe
+  // CodeExecutionService in der App (dieselben Bezeichner wie dort).
+  var LANGUAGES = [
+    { id: 'javascript', label: 'JavaScript', icon: '🟨', file: 'main.js', kind: 'js', mode: 'javascript',
+      starter: 'console.log("Hallo, Welt!");' },
+    { id: 'html', label: 'HTML', icon: '🌐', file: 'index.html', kind: 'html', mode: 'htmlmixed',
+      starter: '<h1>Hallo, Welt!</h1>\n<p>Das ist meine erste Seite.</p>\n<button onclick="alert(\'Hi!\')">Klick mich</button>' },
+    { id: 'css', label: 'CSS', icon: '🎨', file: 'style.css', kind: 'css', mode: 'css',
+      starter: 'h1 {\n  color: #58cc02;\n  font-family: sans-serif;\n}\n\np {\n  color: #444;\n}\n\nbutton {\n  background: #1cb0f6;\n  color: white;\n  border: none;\n  padding: 8px 16px;\n  border-radius: 8px;\n}' },
+    { id: 'sql', label: 'SQL', icon: '🗄️', file: 'query.sql', kind: 'sql', mode: 'text/x-sql',
+      starter: 'CREATE TABLE tiere (id INTEGER PRIMARY KEY, name TEXT, art TEXT);\n\nINSERT INTO tiere (name, art) VALUES\n  (\'Bello\', \'Hund\'),\n  (\'Mimi\', \'Katze\');\n\nSELECT * FROM tiere;' },
+    { id: 'java', label: 'Java', icon: '☕', file: 'Main.java', kind: 'piston', pistonLanguage: 'java', mode: 'text/x-java',
+      starter: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hallo, Welt!");\n    }\n}' },
+    { id: 'kotlin', label: 'Kotlin', icon: '🟣', file: 'main.kt', kind: 'piston', pistonLanguage: 'kotlin', mode: 'text/x-kotlin',
+      starter: 'fun main() {\n    println("Hallo, Welt!")\n}' },
+    { id: 'csharp', label: 'C#', icon: '🟢', file: 'Program.cs', kind: 'piston', pistonLanguage: 'csharp', mode: 'text/x-csharp',
+      starter: 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hallo, Welt!");\n    }\n}' },
+    { id: 'go', label: 'Go', icon: '🐹', file: 'main.go', kind: 'piston', pistonLanguage: 'go', mode: 'text/x-go',
+      starter: 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hallo, Welt!")\n}' },
+    { id: 'swift', label: 'Swift', icon: '🍎', file: 'main.swift', kind: 'piston', pistonLanguage: 'swift', mode: 'text/x-swift',
+      starter: 'print("Hallo, Welt!")' },
+    { id: 'bash', label: 'Bash', icon: '💻', file: 'script.sh', kind: 'piston', pistonLanguage: 'bash', mode: 'text/x-sh',
+      starter: 'echo "Hallo, Welt!"' },
+    { id: 'python', label: 'Python', icon: '🐍', file: 'main.py', kind: 'piston', pistonLanguage: 'python', mode: 'python',
+      starter: 'print("Hallo, Welt!")' },
+    { id: 'typescript', label: 'TypeScript', icon: '🔷', file: 'main.ts', kind: 'piston', pistonLanguage: 'typescript', mode: 'text/typescript',
+      starter: 'const gruss: string = "Hallo, Welt!";\nconsole.log(gruss);' },
+    { id: 'dart', label: 'Dart', icon: '🎯', file: 'main.dart', kind: 'piston', pistonLanguage: 'dart', mode: 'text/x-java',
+      starter: 'void main() {\n  print(\'Hallo, Welt!\');\n}' }
+  ];
+
+  var STORAGE_PREFIX = 'codelingo_playground_v1_';
+  var hasBridge = !!(window.FlutterBridge && typeof window.FlutterBridge.postMessage === 'function');
+
+  var els = {
+    langRow: document.getElementById('lang-row'),
+    editorWrap: document.getElementById('editor-wrap'),
+    editorFilename: document.getElementById('editor-filename'),
+    runBtn: document.getElementById('run-btn'),
+    runLabel: document.getElementById('run-label'),
+    resetBtn: document.getElementById('reset-btn'),
+    dbResetBtn: document.getElementById('db-reset-btn'),
+    statusText: document.getElementById('status-text'),
+    consoleEl: document.getElementById('console'),
+    previewFrame: document.getElementById('preview-frame'),
+    bridgeBanner: document.getElementById('bridge-banner')
+  };
+
+  // ── Sprachchips aufbauen (bewusst VOR dem Editor — hängt an nichts
+  // Externem und soll auf jeden Fall stehen, selbst wenn CodeMirror unten
+  // aus irgendeinem Grund nicht laden sollte). Das "nur App"-Tag wird NICHT
+  // hier fest eingebrannt, sondern von updateBridgeState() unten verwaltet
+  // — siehe Kommentar dort, warum. ────────────────────────
+  LANGUAGES.forEach(function (lang) {
+    var chip = document.createElement('div');
+    chip.className = 'lang-chip';
+    chip.dataset.id = lang.id;
+    chip.innerHTML = '<span class="icon">' + lang.icon + '</span><span>' + lang.label + '</span>';
+    chip.addEventListener('click', function () { switchLanguage(lang.id); });
+    els.langRow.appendChild(chip);
+  });
+
+  // window.FlutterBridge steht direkt beim Start des Skripts manchmal noch
+  // NICHT zur Verfügung, obwohl die App den Kanal längst eingerichtet hat
+  // (Timing-Effekt der WebView) — wird hasBridge nur einmal ganz am Anfang
+  // geprüft, zeigt die Seite fälschlich "nur App"-Markierungen UND die
+  // Warnung an, obwohl die Bridge kurz danach längst da ist. Deshalb hier
+  // mehrfach nachprüfen und die UI bei Bedarf korrigieren.
+  function updateBridgeState() {
+    hasBridge = !!(window.FlutterBridge && typeof window.FlutterBridge.postMessage === 'function');
+    els.bridgeBanner.style.display = hasBridge ? 'none' : 'flex';
+    Array.prototype.forEach.call(els.langRow.children, function (chip, i) {
+      var lang = LANGUAGES[i];
+      var tagEl = chip.querySelector('.tag');
+      var shouldShowTag = lang.kind === 'piston' && !hasBridge;
+      if (shouldShowTag && !tagEl) {
+        var span = document.createElement('span');
+        span.className = 'tag';
+        span.textContent = 'nur App';
+        chip.appendChild(span);
+      } else if (!shouldShowTag && tagEl) {
+        tagEl.remove();
+      }
+    });
+    if (currentLang) {
+      var disabled = currentLang.kind === 'piston' && !hasBridge;
+      els.runBtn.disabled = disabled;
+      els.runLabel.textContent = disabled ? 'Nur in der App verfügbar' : 'Ausführen';
+    }
+  }
+  // Bewusst KEIN sofortiger synchroner Aufruf hier — der könnte die Warnung
+  // kurz aufblitzen lassen, falls FlutterBridge im allerersten Moment noch
+  // nicht bereit ist, obwohl sie kurz danach da ist. Stattdessen bleibt sie
+  // per CSS-Default unsichtbar, bis die erste echte Prüfung gelaufen ist.
+  setTimeout(updateBridgeState, 120);
+  setTimeout(updateBridgeState, 500);
+  setTimeout(updateBridgeState, 1500);
+
+  // ── Editor: CodeMirror mit Fallback ───────────────────────────────
+  // CodeMirror kommt von cdnjs und braucht dafür eine funktionierende
+  // Internetverbindung in dem Moment, in dem die Spielwiese geöffnet wird.
+  // Klappt das ausnahmsweise nicht (Netzwerk-Hänger, CDN kurz down, o.Ä.),
+  // soll die Seite NICHT komplett unbenutzbar werden — dann springt eine
+  // einfache Textarea mit demselben Interface (getValue/setValue/setOption)
+  // ein, mit der alles außer Syntax-Highlighting weiter funktioniert.
+  var cm = initEditor();
+
+  function initEditor() {
+    var textarea = document.getElementById('editor-textarea');
+    if (typeof CodeMirror === 'undefined') {
+      appendLine('⚠️ Editor-Bibliothek konnte nicht geladen werden (kein Internet?). '
+          + 'Einfacher Text-Editor ohne Syntax-Highlighting wird stattdessen genutzt.', 'warn');
+      return plainTextareaAdapter(textarea);
+    }
+    try {
+      return CodeMirror.fromTextArea(textarea, {
+        lineNumbers: true,
+        mode: 'javascript',
+        theme: 'default',
+        indentUnit: 2,
+        tabSize: 2,
+        lineWrapping: false,
+        autoCloseBrackets: false,
+        extraKeys: { 'Ctrl-Enter': runCurrent, 'Cmd-Enter': runCurrent }
+      });
+    } catch (e) {
+      appendLine('⚠️ Editor konnte nicht initialisiert werden: ' + e
+          + '. Einfacher Text-Editor wird stattdessen genutzt.', 'warn');
+      return plainTextareaAdapter(textarea);
+    }
+  }
+
+  // Minimal-Adapter, der genau die drei Methoden bereitstellt, die der
+  // restliche Code von "cm" benutzt — dadurch muss der Rest des Skripts
+  // nicht wissen, ob gerade CodeMirror oder eine nackte Textarea aktiv ist.
+  function plainTextareaAdapter(textarea) {
+    textarea.style.cssText = 'width:100%;height:100%;box-sizing:border-box;border:none;' +
+      'resize:none;outline:none;padding:12px;background:var(--bg);color:var(--text);' +
+      'font-family:var(--font-code);font-size:14px;line-height:1.5;';
+    textarea.style.display = 'block';
+    return {
+      getValue: function () { return textarea.value; },
+      setValue: function (v) { textarea.value = v; },
+      setOption: function () { /* Modus/Highlighting ohne CodeMirror nicht möglich — no-op */ }
+    };
+  }
+
+  var currentLang = LANGUAGES[0];
+  var currentRequestId = null;
+  var sqlDb = null;        // sql.js Database-Instanz, persistiert für die Sitzung
+  var sqlEnginePromise = null;
+
+  // ── Sprache wechseln ─────────────────────────────────────────────
+  function switchLanguage(id) {
+    var lang = LANGUAGES.filter(function (l) { return l.id === id; })[0];
+    if (!lang) return;
+
+    saveCurrentCode();
+    currentLang = lang;
+
+    Array.prototype.forEach.call(els.langRow.children, function (chip) {
+      chip.classList.toggle('active', chip.dataset.id === id);
+    });
+
+    cm.setOption('mode', lang.mode);
+    cm.setValue(loadCode(lang.id) || lang.starter);
+    els.editorFilename.textContent = lang.file;
+
+    els.dbResetBtn.style.display = lang.kind === 'sql' ? 'flex' : 'none';
+    resetOutputPanel();
+    localStorage.setItem(STORAGE_PREFIX + 'last_lang', id);
+
+    var disabled = lang.kind === 'piston' && !hasBridge;
+    els.runBtn.disabled = disabled;
+    els.runLabel.textContent = disabled ? 'Nur in der App verfügbar' : 'Ausführen';
+  }
+
+  function saveCurrentCode() {
+    try { localStorage.setItem(STORAGE_PREFIX + currentLang.id, cm.getValue()); } catch (_) {}
+  }
+  function loadCode(id) {
+    try { return localStorage.getItem(STORAGE_PREFIX + id); } catch (_) { return null; }
+  }
+
+  els.resetBtn.addEventListener('click', function () {
+    cm.setValue(currentLang.starter);
+  });
+
+  // ── Ausgabe-Panel umschalten (Konsole vs. Vorschau-iframe) ────────
+  function resetOutputPanel() {
+    if (currentLang.kind === 'html' || currentLang.kind === 'css') {
+      els.consoleEl.style.display = 'none';
+      els.previewFrame.style.display = 'block';
+      els.previewFrame.srcdoc = '';
+    } else {
+      els.previewFrame.style.display = 'none';
+      els.consoleEl.style.display = 'block';
+      els.consoleEl.innerHTML = '<div class="line placeholder">Noch nichts ausgeführt.</div>';
+    }
+    setStatus('');
+  }
+
+  function setStatus(text) { els.statusText.textContent = text || ''; }
+
+  function appendLine(text, cls) {
+    var div = document.createElement('div');
+    div.className = 'line' + (cls ? ' ' + cls : '');
+    div.textContent = text;
+    els.consoleEl.appendChild(div);
+    els.consoleEl.scrollTop = els.consoleEl.scrollHeight;
+  }
+  function clearConsole() { els.consoleEl.innerHTML = ''; }
+
+  // ── Ausführen ──────────────────────────────────────────────────
+  els.runBtn.addEventListener('click', runCurrent);
+
+  function runCurrent() {
+    if (els.runBtn.disabled) return;
+    var code = cm.getValue();
+    switch (currentLang.kind) {
+      case 'js': return runJavaScript(code);
+      case 'html': return runHtmlPreview(code);
+      case 'css': return runCssPreview(code);
+      case 'sql': return runSql(code);
+      case 'piston': return runViaPiston(currentLang.pistonLanguage, code);
+    }
+  }
+
+  // ── JavaScript: lokal mit umgeleiteter console ───────────────────
+  function runJavaScript(code) {
+    clearConsole();
+    var origLog = console.log, origErr = console.error, origWarn = console.warn;
+    var hadOutput = false;
+
+    function fmt(v) {
+      if (typeof v === 'string') return v;
+      try { return JSON.stringify(v, null, 2); } catch (_) { return String(v); }
+    }
+    console.log = function () { hadOutput = true; appendLine(Array.prototype.map.call(arguments, fmt).join(' ')); origLog.apply(console, arguments); };
+    console.warn = function () { hadOutput = true; appendLine(Array.prototype.map.call(arguments, fmt).join(' '), 'warn'); origWarn.apply(console, arguments); };
+    console.error = function () { hadOutput = true; appendLine(Array.prototype.map.call(arguments, fmt).join(' '), 'error'); origErr.apply(console, arguments); };
+
+    try {
+      var result = new Function(code)();
+      if (result !== undefined) { hadOutput = true; appendLine('⟶ ' + fmt(result)); }
+    } catch (e) {
+      hadOutput = true;
+      appendLine(e.toString(), 'error');
+    } finally {
+      console.log = origLog; console.warn = origWarn; console.error = origErr;
+    }
+    if (!hadOutput) appendLine('Kein console.log()-Aufruf und keine Rückgabe.', null);
+  }
+
+  // ── HTML-Vorschau ─────────────────────────────────────────────
+  function runHtmlPreview(code) {
+    els.previewFrame.srcdoc = code;
+  }
+
+  // ── CSS-Vorschau (gegen eine feste Demo-Seite) ──────────────────
+  function runCssPreview(code) {
+    var demo = '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<style>body{font-family:sans-serif;padding:16px;margin:0;}</style>' +
+      '<style>' + code + '</style></head><body>' +
+      '<h1>Überschrift</h1>' +
+      '<p>Das ist ein Absatz mit <a href="#">einem Link</a> und etwas <em>Text</em>.</p>' +
+      '<ul><li>Erster Punkt</li><li>Zweiter Punkt</li></ul>' +
+      '<button>Ein Knopf</button>' +
+      '<div class="box" style="width:80px;height:80px;background:#ddd;margin-top:10px;">.box</div>' +
+      '</body></html>';
+    els.previewFrame.srcdoc = demo;
+  }
+
+  // ── SQL über sql.js (läuft komplett lokal, kein Server nötig) ───
+  function loadSqlEngine() {
+    if (sqlEnginePromise) return sqlEnginePromise;
+    appendLine('SQL-Engine wird geladen …', 'info');
+    sqlEnginePromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = 'https://sql.js.org/dist/sql-wasm.js';
+      script.onload = function () {
+        window.initSqlJs({ locateFile: function (f) { return 'https://sql.js.org/dist/' + f; } })
+          .then(resolve).catch(reject);
+      };
+      script.onerror = function () { reject(new Error('SQL-Engine konnte nicht geladen werden (kein Internet?).')); };
+      document.head.appendChild(script);
+    });
+    return sqlEnginePromise;
+  }
+
+  els.dbResetBtn.addEventListener('click', function () {
+    sqlDb = null;
+    clearConsole();
+    appendLine('Datenbank wurde zurückgesetzt.', 'info');
+  });
+
+  function runSql(code) {
+    clearConsole();
+    loadSqlEngine().then(function (SQL) {
+      if (!sqlDb) sqlDb = new SQL.Database();
+      try {
+        clearConsole();
+        var results = sqlDb.exec(code); // Array von {columns, values}
+        if (results.length === 0) {
+          appendLine('OK — keine Ergebniszeilen (z.B. CREATE/INSERT/UPDATE ausgeführt).', null);
+        }
+        results.forEach(function (res) { renderSqlTable(res); });
+      } catch (e) {
+        clearConsole();
+        appendLine(e.message || e.toString(), 'error');
+      }
+    }).catch(function (e) {
+      clearConsole();
+      appendLine(e.message || e.toString(), 'error');
+    });
+  }
+
+  function renderSqlTable(res) {
+    var table = document.createElement('table');
+    table.className = 'sql-result';
+    var thead = document.createElement('tr');
+    res.columns.forEach(function (c) {
+      var th = document.createElement('th'); th.textContent = c; thead.appendChild(th);
+    });
+    table.appendChild(thead);
+    res.values.forEach(function (row) {
+      var tr = document.createElement('tr');
+      row.forEach(function (val) {
+        var td = document.createElement('td'); td.textContent = val === null ? 'NULL' : String(val);
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+    els.consoleEl.appendChild(table);
+  }
+
+  // ── Serverseitige Sprachen über FlutterBridge → Piston ──────────
+  function runViaPiston(pistonLanguage, code) {
+    if (!hasBridge) return;
+    clearConsole();
+    els.runBtn.disabled = true;
+    currentRequestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    setStatus('Wird gesendet …');
+    window.FlutterBridge.postMessage(JSON.stringify({
+      requestId: currentRequestId,
+      language: pistonLanguage,
+      code: code,
+      stdin: ''
+    }));
+  }
+
+  // Von der App aufgerufen (siehe PlaygroundScreen._onBridgeMessage):
+  window.onExecutionStatus = function (payload) {
+    if (!payload || payload.requestId !== currentRequestId) return;
+    setStatus(payload.status || '');
+  };
+  window.onExecutionResult = function (payload) {
+    if (!payload || payload.requestId !== currentRequestId) return;
+    setStatus('');
+    els.runBtn.disabled = currentLang.kind === 'piston' && !hasBridge;
+    clearConsole();
+    if (payload.errorMessage) {
+      appendLine(payload.errorMessage, 'error');
+    } else {
+      appendLine(payload.output && payload.output.length ? payload.output : '(keine Ausgabe)',
+          payload.success ? null : 'error');
+    }
+  };
+
+  // ── Sicherheitsnetz ──────────────────────────────────────────────
+  // Jeder sonst unbehandelte Fehler (auch aus Bibliotheken/async Code)
+  // landet sichtbar in der Konsole UND lässt den Status-Punkt im Header
+  // rot werden — damit beim lokalen Testen im Browser (siehe Hinweis an
+  // Marlon) nie einfach "nichts passiert", ohne dass man weiß, warum.
+  window.addEventListener('error', function (event) {
+    document.querySelector('#header .dot').style.background = 'var(--red)';
+    try {
+      appendLine('⚠️ Unerwarteter Fehler: ' + (event.message || event.error), 'error');
+    } catch (_) { /* falls sogar das fehlschlägt, zumindest der rote Punkt */ }
+  });
+
+  // ── Start ────────────────────────────────────────────────────────
+  var lastLang = null;
+  try { lastLang = localStorage.getItem(STORAGE_PREFIX + 'last_lang'); } catch (_) {}
+  switchLanguage(lastLang && LANGUAGES.some(function (l) { return l.id === lastLang; }) ? lastLang : LANGUAGES[0].id);
+
+  window.addEventListener('beforeunload', saveCurrentCode);
+})();
+</script>
+</body>
+</html>
