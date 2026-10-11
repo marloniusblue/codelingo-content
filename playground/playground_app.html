@@ -20,6 +20,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/go/go.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/shell/shell.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/swift/swift.min.js"></script>
 
 <style>
   :root {
@@ -38,6 +39,25 @@
     --blue-dark: #0e8fd0;
     --orange: #ff9600;
     --red: #ff4b4b;
+    --red-dark: #b83232;
+    --on-green: #fff;
+    --header-top: #191b24;
+    --tint: rgba(255,255,255,.06);
+    --shadow: rgba(0,0,0,.3);
+    --cursor: #58cc02;
+    --sel: rgba(28,176,246,.18);
+    --line-num: #454858;
+    /* Syntax-Farben (werden von applyAppTheme aus dem App-Farbschema gesetzt) */
+    --syn-keyword: #ff79c6;
+    --syn-string: #f1fa8c;
+    --syn-comment: #6a6f85;
+    --syn-number: #bd93f9;
+    --syn-def: #1cb0f6;
+    --syn-builtin: #8be9fd;
+    --syn-type: #50fa7b;
+    --syn-meta: #ffb86c;
+    --syn-operator: #ff79c6;
+    --syn-bracket: #a8aabd;
     --font-ui: 'Nunito', -apple-system, Roboto, sans-serif;
     --font-code: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
   }
@@ -54,7 +74,7 @@
   /* ── Kopfzeile ─────────────────────────────────────────────────── */
   #header {
     flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
-    padding: 12px 16px 10px; background: linear-gradient(180deg, #191b24, var(--bg));
+    padding: 12px 16px 10px; background: linear-gradient(180deg, var(--header-top), var(--bg));
     max-height: 80px; overflow: hidden;
     transition: max-height .24s ease, padding .24s ease, opacity .18s ease;
   }
@@ -94,7 +114,7 @@
   }
   .lang-chip .tag {
     font-size: 9px; font-weight: 700; opacity: .8; margin-left: 2px;
-    background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 999px;
+    background: var(--tint); padding: 2px 6px; border-radius: 999px;
   }
 
   /* ── Editor-Fensterrahmen ──────────────────────────────────────── */
@@ -102,7 +122,7 @@
     flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
     margin: 0 12px 10px; border-radius: 16px; overflow: hidden;
     background: var(--surface); border: 1px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    box-shadow: 0 4px 12px var(--shadow);
   }
   #editor-titlebar, #output-titlebar {
     flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
@@ -121,18 +141,22 @@
   #editor-wrap { flex: 1 1 auto; min-height: 0; position: relative; }
   .CodeMirror { height: 100%; font-family: var(--font-code); font-size: 14px; background: var(--surface); color: var(--text); padding: 4px 0; }
   .CodeMirror-gutters { background: var(--surface); border-right: 1px solid var(--border); }
-  .CodeMirror-linenumber { color: #454858; }
-  .CodeMirror-cursor { border-left: 2px solid var(--green); }
-  .CodeMirror-selected { background: rgba(28,176,246,.18) !important; }
-  .cm-s-default .cm-keyword { color: #ff79c6; }
-  .cm-s-default .cm-string { color: #f1fa8c; }
-  .cm-s-default .cm-comment { color: #6a6f85; font-style: italic; }
-  .cm-s-default .cm-number { color: #bd93f9; }
-  .cm-s-default .cm-atom { color: #bd93f9; }
-  .cm-s-default .cm-def { color: var(--blue); }
-  .cm-s-default .cm-variable { color: var(--text); }
-  .cm-s-default .cm-tag { color: #ff79c6; }
-  .cm-s-default .cm-attribute { color: var(--blue); }
+  .CodeMirror-linenumber { color: var(--line-num); }
+  .CodeMirror-cursor { border-left: 2px solid var(--cursor); }
+  .CodeMirror-selected { background: var(--sel) !important; }
+  /* Syntax-Farben: CodeMirror-Standardfarben sind für helle Hintergründe gedacht,
+     deshalb hier alles über Variablen gesetzt (siehe applyAppTheme). */
+  .cm-s-default .cm-keyword { color: var(--syn-keyword); }
+  .cm-s-default .cm-string, .cm-s-default .cm-string-2 { color: var(--syn-string); }
+  .cm-s-default .cm-comment { color: var(--syn-comment); font-style: italic; }
+  .cm-s-default .cm-number, .cm-s-default .cm-atom { color: var(--syn-number); }
+  .cm-s-default .cm-def, .cm-s-default .cm-attribute, .cm-s-default .cm-link { color: var(--syn-def); }
+  .cm-s-default .cm-variable, .cm-s-default .cm-property { color: var(--text); }
+  .cm-s-default .cm-tag, .cm-s-default .cm-operator { color: var(--syn-operator); }
+  .cm-s-default .cm-builtin, .cm-s-default .cm-variable-2 { color: var(--syn-builtin); }
+  .cm-s-default .cm-variable-3, .cm-s-default .cm-type { color: var(--syn-type); }
+  .cm-s-default .cm-meta, .cm-s-default .cm-qualifier { color: var(--syn-meta); }
+  .cm-s-default .cm-bracket { color: var(--syn-bracket); }
 
   /* ── Aktionsleiste ─────────────────────────────────────────────── */
   #action-row {
@@ -144,12 +168,12 @@
   #run-btn {
     flex: 1 1 auto; position: relative; display: flex; align-items: center; justify-content: center;
     gap: 8px; height: 48px; border-radius: 14px; font-weight: 800; font-size: 15px;
-    color: #fff; background: var(--green); border-bottom: 4px solid var(--green-dark);
+    color: var(--on-green); background: var(--green); border-bottom: 4px solid var(--green-dark);
     transition: transform .08s ease, border-bottom-width .08s ease, background .15s ease;
   }
   #run-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
   #run-btn:disabled {
-    background: var(--surface-3); border-bottom-color: #1c1e28; color: var(--text-faint);
+    background: var(--surface-3); border-bottom-color: var(--border); color: var(--text-faint);
   }
   #run-btn .run-icon { font-size: 13px; }
 
@@ -172,7 +196,7 @@
     flex: 0 0 38%; min-height: 100px; margin: 0 12px 12px;
     border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;
     background: var(--surface); border: 1px solid var(--border);
-    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    box-shadow: 0 4px 12px var(--shadow);
   }
 
   #console {
@@ -193,14 +217,14 @@
     border: 1px solid var(--border); padding: 6px 10px; text-align: left;
   }
   table.sql-result th { background: var(--surface-3); color: var(--blue); font-weight: 700; }
-  table.sql-result tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  table.sql-result tr:nth-child(even) td { background: var(--tint); }
 
   /* ── Live-Sitzung (interaktive Konsole) ───────────────────────── */
   #output-titlebar .spacer { flex: 1 1 auto; }
   #live-stop {
     display: none; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
     border-radius: 999px; font-size: 12px; font-weight: 800; color: #fff;
-    background: var(--red); border-bottom: 3px solid #b83232;
+    background: var(--red); border-bottom: 3px solid var(--red-dark);
   }
   #live-stop:active { transform: translateY(1px); border-bottom-width: 2px; }
   body.live #live-stop { display: flex; }
@@ -232,11 +256,11 @@
   #stdin-send {
     border: 0; cursor: pointer; padding: 0; font-family: inherit;
     flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px; font-size: 17px;
-    color: #fff; background: var(--green); border-bottom: 3px solid var(--green-dark);
+    color: var(--on-green); background: var(--green); border-bottom: 3px solid var(--green-dark);
     display: flex; align-items: center; justify-content: center;
   }
   #stdin-send:active { transform: translateY(1px); border-bottom-width: 1px; }
-  #run-btn.stop { background: var(--red); border-bottom-color: #b83232; }
+  #run-btn.stop { background: var(--red); border-bottom-color: var(--red-dark); }
   #status-text.warn { color: var(--orange); }
 
   /* ── Tastatur offen: Platz dem geben, was man gerade braucht ───── */
@@ -337,7 +361,7 @@
       starter: 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hallo, Welt!");\n    }\n}' },
     { id: 'go', label: 'Go', icon: '🐹', file: 'main.go', kind: 'piston', pistonLanguage: 'go', mode: 'text/x-go',
       starter: 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hallo, Welt!")\n}' },
-    { id: 'swift', label: 'Swift', icon: '🍎', file: 'main.swift', kind: 'piston', pistonLanguage: 'swift', mode: 'text/x-swift',
+    { id: 'swift', label: 'Swift', icon: '🍎', file: 'main.swift', kind: 'piston', pistonLanguage: 'swift', mode: 'swift',
       starter: 'print("Hallo, Welt!")' },
     { id: 'bash', label: 'Bash', icon: '💻', file: 'script.sh', kind: 'piston', pistonLanguage: 'bash', mode: 'text/x-sh',
       starter: 'echo "Hallo, Welt!"' },
@@ -754,6 +778,102 @@
   // Fokus im Eingabefeld behalten (Tastatur bleibt offen), Klick aber NICHT unterdrücken
   els.stdinSend.addEventListener('mousedown', function (e) { e.preventDefault(); });
   els.liveStop.addEventListener('click', killLive);
+
+  // ── App-Farbschema übernehmen ─────────────────────────────────────
+  // Von der App aufgerufen (PlaygroundScreen). Erhält die Farben des
+  // gewählten App-Themes als #RRGGBB und setzt daraus alle CSS-Variablen,
+  // inklusive der Syntax-Farben. Farben, die auf dem Hintergrund zu schwach
+  // wären (z. B. sehr dunkle Texte in Dark-Themes), werden automatisch
+  // aufgehellt bzw. abgedunkelt, damit der Code lesbar bleibt.
+  window.applyAppTheme = function (t) {
+    try {
+      if (!t) return;
+      var root = document.documentElement;
+      var WHITE = [255, 255, 255], BLACK = [0, 0, 0];
+      var toRgb = function (h) {
+        h = String(h || '').replace('#', '');
+        if (h.length === 3) h = h.replace(/./g, '$&$&');
+        var n = parseInt(h.slice(-6), 16);
+        if (isNaN(n)) n = 0;
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      };
+      var toHex = function (c) {
+        return '#' + c.map(function (v) {
+          v = Math.max(0, Math.min(255, Math.round(v)));
+          return (v < 16 ? '0' : '') + v.toString(16);
+        }).join('');
+      };
+      var mix = function (a, b, w) {
+        return [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w];
+      };
+      var lum = function (c) {
+        var f = c.map(function (v) {
+          v /= 255;
+          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        });
+        return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
+      };
+      var contrast = function (a, b) {
+        var x = lum(a), y = lum(b);
+        return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+      };
+      var readable = function (c, bg, min) {
+        var target = lum(bg) > 0.5 ? BLACK : WHITE;
+        var out = c, i = 0;
+        while (contrast(out, bg) < min && i < 30) { out = mix(out, target, 0.1); i++; }
+        return out;
+      };
+      var rgba = function (c, a) {
+        return 'rgba(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ',' + a + ')';
+      };
+      var set = function (k, v) { root.style.setProperty(k, typeof v === 'string' ? v : toHex(v)); };
+
+      var bg = toRgb(t.background), surface = toRgb(t.surface), border = toRgb(t.border);
+      var text = readable(toRgb(t.text), surface, 7);
+      var dim = readable(toRgb(t.textSecondary), surface, 4.5);
+      var faint = readable(toRgb(t.textLight), surface, 3);
+      var primary = readable(toRgb(t.primary), surface, 3);
+      var secondary = readable(toRgb(t.secondary), surface, 3);
+      var orange = readable(toRgb(t.streak), surface, 3);
+      var red = readable(toRgb(t.wrong), surface, 3);
+      var dark = !!t.isDark;
+
+      set('--bg', bg); set('--surface', surface);
+      set('--surface-2', mix(surface, text, 0.06));
+      set('--surface-3', mix(surface, text, 0.12));
+      set('--border', border);
+      set('--text', text); set('--text-dim', dim); set('--text-faint', faint);
+      set('--green', primary);
+      set('--green-dark', toRgb(t.primaryDark));
+      set('--green-glow', rgba(primary, 0.28));
+      var rawPrimary = toRgb(t.primary);
+      set('--on-green', contrast(WHITE, rawPrimary) >= contrast(BLACK, rawPrimary) ? '#ffffff' : '#1a1a1a');
+      set('--blue', secondary);
+      set('--blue-dark', mix(secondary, BLACK, 0.25));
+      set('--orange', orange);
+      set('--red', red);
+      set('--red-dark', mix(red, BLACK, 0.3));
+      set('--header-top', mix(bg, text, 0.05));
+      set('--tint', rgba(text, 0.06));
+      set('--shadow', dark ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.12)');
+      set('--cursor', primary);
+      set('--sel', rgba(secondary, 0.22));
+      set('--line-num', faint);
+
+      var syn = function (c, min) { return readable(c, surface, min || 4.5); };
+      set('--syn-keyword', syn(toRgb(t.primary)));
+      set('--syn-string', syn(toRgb(t.xp)));
+      set('--syn-number', syn(toRgb(t.streak)));
+      set('--syn-def', syn(toRgb(t.secondary)));
+      set('--syn-builtin', syn(mix(toRgb(t.secondary), text, 0.35)));
+      set('--syn-type', syn(mix(toRgb(t.correct), text, 0.3)));
+      set('--syn-meta', syn(mix(toRgb(t.streak), text, 0.3)));
+      set('--syn-operator', syn(toRgb(t.textSecondary)));
+      set('--syn-bracket', dim);
+      set('--syn-comment', faint);
+      if (cm && cm.refresh) cm.refresh();
+    } catch (e) { /* Farben sind nur Kosmetik — nie die Seite damit kaputt machen */ }
+  };
 
   // Von der App aufgerufen (siehe PlaygroundScreen._onBridgeMessage):
   window.onExecutionStatus = function (payload) {
