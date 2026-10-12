@@ -41,6 +41,9 @@
     --red: #ff4b4b;
     --red-dark: #b83232;
     --on-green: #fff;
+    --primary-raw: #58cc02;
+    --primary-12: rgba(88,204,2,.12);
+    --primary-35: rgba(88,204,2,.35);
     --header-top: #191b24;
     --tint: rgba(255,255,255,.06);
     --shadow: rgba(0,0,0,.3);
@@ -73,6 +76,7 @@
 
   /* ── Kopfzeile ─────────────────────────────────────────────────── */
   #header {
+    display: none !important;
     flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
     padding: 12px 16px 10px; background: linear-gradient(180deg, var(--header-top), var(--bg));
     max-height: 80px; overflow: hidden;
@@ -90,39 +94,53 @@
 
   /* ── Sprachauswahl ─────────────────────────────────────────────── */
   #lang-row {
-    display: flex; gap: 8px; padding: 2px 16px 12px;
+    display: flex; gap: 10px; padding: 12px 16px 12px;
     overflow-x: auto; overflow-y: hidden; flex: 0 0 auto;
     -webkit-overflow-scrolling: touch;
     max-height: 80px;
     transition: max-height .24s ease, padding .24s ease, opacity .18s ease;
   }
   #lang-row::-webkit-scrollbar { display: none; }
+  /* Sprach-Chips wie die Antwortkarten der App: Fläche, 2px Rahmen, Radius 14 */
   .lang-chip {
     flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
-    padding: 8px 14px; border-radius: 999px;
-    background: var(--surface-2); color: var(--text-dim);
-    font-family: var(--font-ui); font-size: 13px; font-weight: 700;
-    border: 2px solid var(--surface-2);
+    padding: 10px 14px; border-radius: 14px;
+    background: var(--surface); color: var(--text);
+    font-family: var(--font-ui); font-size: 14px; font-weight: 700;
+    border: 2px solid var(--border);
     cursor: pointer; user-select: none; white-space: nowrap;
-    transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+    transition: background .15s ease, border-color .15s ease, transform .1s ease;
   }
-  .lang-chip:active { transform: scale(.95); }
+  .lang-chip:active { transform: scale(.97); }
   .lang-chip .icon { font-size: 14px; line-height: 1; }
   .lang-chip.active {
-    background: var(--green-glow); color: var(--green);
-    border-color: var(--green);
+    background: var(--primary-12); color: var(--text);
+    border: 2.5px solid var(--primary-raw); padding: 9.5px 13.5px;
   }
   .lang-chip .tag {
     font-size: 9px; font-weight: 700; opacity: .8; margin-left: 2px;
     background: var(--tint); padding: 2px 6px; border-radius: 999px;
   }
 
+  /* ── Terminal-Look wie in den Lektionen (CodeTerminal in der App) ─────
+     Editor und Ausgabe sind unabhängig vom App-Theme immer dunkel:
+     Hintergrund #1E1E2E, Kopfzeile #2A2A3E, Text #CDD6F4. Alles innerhalb
+     dieser beiden Karten nutzt deshalb eigene (feste) Farbvariablen. */
+  #editor-card, #output-card {
+    --bg: #1e1e2e; --surface: #1e1e2e; --surface-2: #2a2a3e; --surface-3: #34344a;
+    --border: #34344a; --text: #cdd6f4; --text-dim: #a2a7bd; --text-faint: #6b7280;
+    --green: #58cc02; --green-dark: #3f9401; --green-glow: rgba(88, 204, 2, .28);
+    --blue: #1cb0f6; --orange: #ff9600; --red: #ff4b4b; --red-dark: #b83232;
+    --on-green: #fff; --tint: rgba(255,255,255,.06); --shadow: rgba(0,0,0,.3);
+    --cursor: #58cc02; --sel: rgba(28,176,246,.22); --line-num: #454858;
+  }
+
   /* ── Editor-Fensterrahmen ──────────────────────────────────────── */
   #editor-card {
     flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
     margin: 0 12px 10px; border-radius: 16px; overflow: hidden;
-    background: var(--surface); border: 1px solid var(--border);
-    box-shadow: 0 4px 12px var(--shadow);
+    background: var(--surface);
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
   }
   #editor-titlebar, #output-titlebar {
     flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
@@ -140,7 +158,7 @@
   }
   #editor-wrap { flex: 1 1 auto; min-height: 0; position: relative; }
   .CodeMirror { height: 100%; font-family: var(--font-code); font-size: 14px; background: var(--surface); color: var(--text); padding: 4px 0; }
-  .CodeMirror-gutters { background: var(--surface); border-right: 1px solid var(--border); }
+  .CodeMirror-gutters { background: var(--surface); border-right: none; }
   .CodeMirror-linenumber { color: var(--line-num); }
   .CodeMirror-cursor { border-left: 2px solid var(--cursor); }
   .CodeMirror-selected { background: var(--sel) !important; }
@@ -152,39 +170,47 @@
   .cm-s-default .cm-number, .cm-s-default .cm-atom { color: var(--syn-number); }
   .cm-s-default .cm-def, .cm-s-default .cm-attribute, .cm-s-default .cm-link { color: var(--syn-def); }
   .cm-s-default .cm-variable, .cm-s-default .cm-property { color: var(--text); }
-  .cm-s-default .cm-tag, .cm-s-default .cm-operator { color: var(--syn-operator); }
+  .cm-s-default .cm-operator { color: var(--syn-operator); }
   .cm-s-default .cm-builtin, .cm-s-default .cm-variable-2 { color: var(--syn-builtin); }
   .cm-s-default .cm-variable-3, .cm-s-default .cm-type { color: var(--syn-type); }
-  .cm-s-default .cm-meta, .cm-s-default .cm-qualifier { color: var(--syn-meta); }
+  .cm-s-default .cm-meta { color: var(--syn-meta); }
   .cm-s-default .cm-bracket { color: var(--syn-bracket); }
+  /* HTML/CSS: Tags und Selektoren wie Schlüsselwörter, Eigenschaften wie Namen */
+  .cm-s-default .cm-tag, .cm-s-default .cm-qualifier { color: var(--syn-keyword); }
+  .lang-html .cm-property, .lang-css .cm-property { color: var(--syn-def); }
+  .lang-css .cm-atom { color: var(--text); }
+  .lang-bash .cm-variable-2 { color: var(--syn-meta); }
 
   /* ── Aktionsleiste ─────────────────────────────────────────────── */
   #action-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 2px 16px 12px; flex: 0 0 auto;
+    display: flex; align-items: center; gap: 12px;
+    padding: 4px 16px 14px; flex: 0 0 auto;
   }
   button { font-family: var(--font-ui); border: none; cursor: pointer; }
 
+  /* Wie der Bestätigen-Button der App: Höhe 52, Radius 14, Primärfarbe, Schatten */
   #run-btn {
     flex: 1 1 auto; position: relative; display: flex; align-items: center; justify-content: center;
-    gap: 8px; height: 48px; border-radius: 14px; font-weight: 800; font-size: 15px;
-    color: var(--on-green); background: var(--green); border-bottom: 4px solid var(--green-dark);
-    transition: transform .08s ease, border-bottom-width .08s ease, background .15s ease;
+    gap: 8px; height: 52px; border-radius: 14px; font-weight: 800; font-size: 16px;
+    color: var(--on-green); background: var(--primary-raw);
+    box-shadow: 0 4px 10px var(--primary-35);
+    transition: transform .08s ease, background .15s ease;
   }
-  #run-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  #run-btn:active { transform: scale(.98); }
   #run-btn:disabled {
-    background: var(--surface-3); border-bottom-color: var(--border); color: var(--text-faint);
+    background: var(--border); color: var(--text-faint); box-shadow: none;
   }
-  #run-btn .run-icon { font-size: 13px; }
+  #run-btn .run-icon { font-size: 14px; }
 
+  /* Wie die umrandeten Buttons der App */
   .icon-btn {
-    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px;
-    background: var(--surface-2); color: var(--text-dim); font-size: 17px;
+    flex: 0 0 auto; width: 52px; height: 52px; border-radius: 14px;
+    background: transparent; color: var(--text); font-size: 18px;
     display: flex; align-items: center; justify-content: center;
-    border-bottom: 3px solid var(--surface-3);
-    transition: transform .08s ease, border-bottom-width .08s ease;
+    border: 2px solid var(--border);
+    transition: transform .08s ease;
   }
-  .icon-btn:active { transform: translateY(1px); border-bottom-width: 1px; }
+  .icon-btn:active { transform: scale(.96); }
 
   #status-text {
     font-size: 11px; font-weight: 600; color: var(--text-dim);
@@ -195,8 +221,8 @@
   #output-card {
     flex: 0 0 38%; min-height: 100px; margin: 0 12px 12px;
     border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;
-    background: var(--surface); border: 1px solid var(--border);
-    box-shadow: 0 4px 12px var(--shadow);
+    background: var(--surface);
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
   }
 
   #console {
@@ -256,11 +282,11 @@
   #stdin-send {
     border: 0; cursor: pointer; padding: 0; font-family: inherit;
     flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px; font-size: 17px;
-    color: var(--on-green); background: var(--green); border-bottom: 3px solid var(--green-dark);
+    color: #fff; background: var(--primary-raw);
     display: flex; align-items: center; justify-content: center;
   }
-  #stdin-send:active { transform: translateY(1px); border-bottom-width: 1px; }
-  #run-btn.stop { background: var(--red); border-bottom-color: var(--red-dark); }
+  #stdin-send:active { transform: scale(.96); }
+  #run-btn.stop { background: var(--red); box-shadow: 0 4px 10px rgba(255,75,75,.35); }
   #status-text.warn { color: var(--orange); }
 
   /* ── Tastatur offen: Platz dem geben, was man gerade braucht ───── */
@@ -511,6 +537,12 @@
     });
 
     cm.setOption('mode', lang.mode);
+    (function () {
+      if (!cm.getWrapperElement) return;
+      var w = cm.getWrapperElement();
+      ['html', 'css', 'bash'].forEach(function (k) { w.classList.remove('lang-' + k); });
+      if (['html', 'css', 'bash'].indexOf(lang.id) >= 0) w.classList.add('lang-' + lang.id);
+    })();
     cm.setValue(loadCode(lang.id) || lang.starter);
     els.editorFilename.textContent = lang.file;
 
@@ -847,6 +879,10 @@
       set('--green-dark', toRgb(t.primaryDark));
       set('--green-glow', rgba(primary, 0.28));
       var rawPrimary = toRgb(t.primary);
+      var rawPrimaryHex = function (h) { return toHex(toRgb(h)); };
+      set('--primary-raw', rawPrimaryHex(t.primary));
+      set('--primary-12', rgba(toRgb(t.primary), 0.12));
+      set('--primary-35', rgba(toRgb(t.primary), 0.35));
       set('--on-green', contrast(WHITE, rawPrimary) >= contrast(BLACK, rawPrimary) ? '#ffffff' : '#1a1a1a');
       set('--blue', secondary);
       set('--blue-dark', mix(secondary, BLACK, 0.25));
@@ -860,17 +896,20 @@
       set('--sel', rgba(secondary, 0.22));
       set('--line-num', faint);
 
-      var syn = function (c, min) { return readable(c, surface, min || 4.5); };
+      // Syntax-Farben: passend zum festen dunklen Terminal (#1E1E2E), aber mit den
+      // Akzentfarben des App-Themes. Zu schwache Farben werden aufgehellt.
+      var TERM = [30, 30, 46], TERMTEXT = [205, 214, 244];
+      var syn = function (c, min) { return readable(c, TERM, min || 4.5); };
       set('--syn-keyword', syn(toRgb(t.primary)));
       set('--syn-string', syn(toRgb(t.xp)));
       set('--syn-number', syn(toRgb(t.streak)));
       set('--syn-def', syn(toRgb(t.secondary)));
-      set('--syn-builtin', syn(mix(toRgb(t.secondary), text, 0.35)));
-      set('--syn-type', syn(mix(toRgb(t.correct), text, 0.3)));
-      set('--syn-meta', syn(mix(toRgb(t.streak), text, 0.3)));
-      set('--syn-operator', syn(toRgb(t.textSecondary)));
-      set('--syn-bracket', dim);
-      set('--syn-comment', faint);
+      set('--syn-builtin', syn(mix(toRgb(t.secondary), TERMTEXT, 0.35)));
+      set('--syn-type', syn(mix(toRgb(t.correct), TERMTEXT, 0.3)));
+      set('--syn-meta', syn(mix(toRgb(t.streak), TERMTEXT, 0.3)));
+      set('--syn-operator', syn(mix(toRgb(t.primary), TERMTEXT, 0.5)));
+      set('--syn-bracket', '#a2a7bd');
+      set('--syn-comment', syn(toRgb('#6b7280'), 3.2));
       if (cm && cm.refresh) cm.refresh();
     } catch (e) { /* Farben sind nur Kosmetik — nie die Seite damit kaputt machen */ }
   };
