@@ -93,6 +93,8 @@
   }
 
   /* ── Sprachauswahl ─────────────────────────────────────────────── */
+  /* Die Sprachauswahl liegt jetzt in der App (oben links), nicht mehr in der Seite. */
+  #lang-row { display: none !important; }
   #lang-row {
     display: flex; gap: 10px; padding: 12px 16px 12px;
     overflow-x: auto; overflow-y: hidden; flex: 0 0 auto;
@@ -995,6 +997,12 @@
   });
 
   // ── Start ────────────────────────────────────────────────────────
+  // Von der App aufgerufen: Sprache wechseln (App-Auswahl oben links).
+  window.selectPlaygroundLanguage = function (id) {
+    if (!LANGUAGES.some(function (l) { return l.id === id; })) return;
+    switchLanguage(id);
+  };
+
   var lastLang = null;
   try { lastLang = localStorage.getItem(STORAGE_PREFIX + 'last_lang'); } catch (_) {}
   switchLanguage(lastLang && LANGUAGES.some(function (l) { return l.id === lastLang; }) ? lastLang : LANGUAGES[0].id);
